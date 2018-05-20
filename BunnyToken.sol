@@ -73,8 +73,6 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 		}
 	}
 
-
-
 	/*
 	* @param _index uint256 Lock record idnex.
 	* @return Return a lock record (lock amount, releaseTimestamp)
@@ -129,6 +127,7 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 contract BunnyBurnableToken is LockableToken {
 	
 	event Upgrade(address indexed owner, uint256 value);
+	event UpgradeID(address indexed owner, string uid, uint256 value);
 
 	address public cooAddress;
 
@@ -163,13 +162,29 @@ contract BunnyBurnableToken is LockableToken {
         upgradeBrunAmount = _upgradeBrunAmount;
     }
 
+    function burnBunnyForID(string _uid) external whenNotPaused {
+    	require(balances[msg.sender] >= upgradeAmount);
+
+    	balances[msg.sender] = balances[msg.sender].sub(upgradeAmount);
+    	uint256 fee = upgradeAmount.sub(upgradeBrunAmount);
+    	balances[cooAddress] = balances[cooAddress].add(fee);
+    	
+    	burn(upgradeBrunAmount);
+
+    	emit Transfer(msg.sender, cooAddress, fee);
+    	emit UpgradeID(msg.sender, _uid, upgradeAmount);
+    }
+
     function burnBunny() external whenNotPaused {
     	require(balances[msg.sender] >= upgradeAmount);
 
     	balances[msg.sender] = balances[msg.sender].sub(upgradeAmount);
-    	balances[cooAddress] = balances[cooAddress].add(upgradeAmount.sub(upgradeBrunAmount));
+    	uint256 fee = upgradeAmount.sub(upgradeBrunAmount);
+    	balances[cooAddress] = balances[cooAddress].add(fee);
     	
     	burn(upgradeBrunAmount);
+
+    	emit Transfer(msg.sender, cooAddress, fee);
     	emit Upgrade(msg.sender, upgradeAmount);
     }
 }
@@ -179,8 +194,6 @@ contract BunnyToken is BunnyBurnableToken {
 	string public symbol  = "AA";
 	uint8 public decimals = 8;
 
-
-
 	// 1.6 billion in initial supply
 	uint256 public constant INITIAL_SUPPLY = 1600000000;
 
@@ -189,9 +202,7 @@ contract BunnyToken is BunnyBurnableToken {
 		nodeSmallAmount   = 10000  * (10 ** uint256(decimals));
 	    nodeBigAmount     = 100000  * (10 ** uint256(decimals));
 	    upgradeAmount     = 126 * (10 ** uint256(decimals));
-	    upgradeBrunAmount = 26 * (10 ** uint256(decimals));
-
-
+	    upgradeBrunAmount = 100 * (10 ** uint256(decimals));
 
 		balances[msg.sender] = totalSupply_;
 	}
