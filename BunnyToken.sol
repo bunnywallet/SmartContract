@@ -127,7 +127,7 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 contract BunnyBurnableToken is LockableToken {
 	
 	event Upgrade(address indexed owner, uint256 value);
-	event UpgradeID(address indexed owner, string uid, uint256 value);
+	event UpgradeFor(address indexed from, address indexed to, uint256 value);
 
 	address public cooAddress;
 
@@ -162,7 +162,7 @@ contract BunnyBurnableToken is LockableToken {
         upgradeBrunAmount = _upgradeBrunAmount;
     }
 
-    function burnBunnyForID(string _uid) external whenNotPaused {
+    function burnBunnyFor(address _address) external whenNotPaused {
     	require(balances[msg.sender] >= upgradeAmount);
 
     	balances[msg.sender] = balances[msg.sender].sub(upgradeAmount);
@@ -172,7 +172,7 @@ contract BunnyBurnableToken is LockableToken {
     	burn(upgradeBrunAmount);
 
     	emit Transfer(msg.sender, cooAddress, fee);
-    	emit UpgradeID(msg.sender, _uid, upgradeAmount);
+    	emit UpgradeFor(msg.sender, _address, upgradeAmount);
     }
 
     function burnBunny() external whenNotPaused {
