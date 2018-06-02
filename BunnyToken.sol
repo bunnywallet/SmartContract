@@ -126,8 +126,8 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 
 contract BunnyBurnableToken is LockableToken {
 	
-	event Upgrade(address indexed owner, uint256 value);
-	event UpgradeFor(address indexed from, address indexed to, uint256 value);
+	event Upgrade(address indexed owner, uint256 value, uint256 vip);
+	event UpgradeFor(address indexed from, address indexed to, uint256 value, uint256 vip);
 
 	address public cooAddress;
 
@@ -162,30 +162,40 @@ contract BunnyBurnableToken is LockableToken {
         upgradeBrunAmount = _upgradeBrunAmount;
     }
 
-    function burnBunnyFor(address _address) external whenNotPaused {
-    	require(balances[msg.sender] >= upgradeAmount);
+    function burnBunnyFor(address _address, uint256 _vip) external whenNotPaused {
+    	require(_vip > 0 && _vip <= 12);
+    	
+    	uint256 upgradeAmountAll = upgradeAmount.mul(_vip);
+    	uint256 upgradeBrunAmountAll = upgradeBrunAmount.mul(_vip);
 
-    	balances[msg.sender] = balances[msg.sender].sub(upgradeAmount);
-    	uint256 fee = upgradeAmount.sub(upgradeBrunAmount);
+    	require(balances[msg.sender] >= upgradeAmountAll);
+
+    	balances[msg.sender] = balances[msg.sender].sub(upgradeAmountAll);
+    	uint256 fee = upgradeAmountAll.sub(upgradeBrunAmountAll);
     	balances[cooAddress] = balances[cooAddress].add(fee);
     	
-    	burn(upgradeBrunAmount);
+    	burn(upgradeBrunAmountAll);
 
     	emit Transfer(msg.sender, cooAddress, fee);
-    	emit UpgradeFor(msg.sender, _address, upgradeAmount);
+    	emit UpgradeFor(msg.sender, _address, upgradeAmount, _vip);
     }
 
-    function burnBunny() external whenNotPaused {
-    	require(balances[msg.sender] >= upgradeAmount);
+    function burnBunny(uint256 _vip) external whenNotPaused {
+    	require(_vip > 0 && _vip <= 12);
+    	
+    	uint256 upgradeAmountAll = upgradeAmount.mul(_vip);
+    	uint256 upgradeBrunAmountAll = upgradeBrunAmount.mul(_vip);
 
-    	balances[msg.sender] = balances[msg.sender].sub(upgradeAmount);
-    	uint256 fee = upgradeAmount.sub(upgradeBrunAmount);
+    	require(balances[msg.sender] >= upgradeAmountAll);
+
+    	balances[msg.sender] = balances[msg.sender].sub(upgradeAmountAll);
+    	uint256 fee = upgradeAmountAll.sub(upgradeBrunAmountAll);
     	balances[cooAddress] = balances[cooAddress].add(fee);
     	
-    	burn(upgradeBrunAmount);
+    	burn(upgradeBrunAmountAll);
 
     	emit Transfer(msg.sender, cooAddress, fee);
-    	emit Upgrade(msg.sender, upgradeAmount);
+    	emit Upgrade(msg.sender, upgradeAmountAll, _vip);
     }
 }
 
