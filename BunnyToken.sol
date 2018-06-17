@@ -10,54 +10,36 @@ import "./SafeMath.sol";
 contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 	using SafeMath for uint256;
 
-	event Lock(address indexed owner, uint256 value);
-	event UnLock(address indexed owner, uint256 value);
-
-	uint256 public nodeSmallAmount;
-
-	uint256 public nodeBigAmount;
+	event Lock(address indexed owner, uint256 orderId, uint256 value);
+	event UnLock(address indexed owner, uint256 orderId, uint256 value);
 
 	struct LockRecord {
 	    
-	    // lock amount
+	    ///@dev order id
+	    uint256 orderId;
+
+	    ///@dev lock amount
 	    uint256 amount;
-	    
-	    /// unlock timestamp
+
+	    ///@dev unlock timestamp
 	    uint256 releaseTimestamp;
 	}
 	
 	mapping (address => LockRecord[]) ownedLockRecords;
 	mapping (address => uint256) ownedLockAmount;
 
-	function setNodeSmallAmount(uint256 _amount) external onlyOwner {
-		nodeSmallAmount = _amount;
-	}
-
-	function setNodeBigAmount(uint256 _amount) external onlyOwner {
-		nodeBigAmount = _amount;	
-	}
-
 	/**
 	* @dev Lock token until 1 year.
 	*/
-	function lockTokenForNodeSmall() public whenNotPaused {
-		require(balances[msg.sender] >= nodeSmallAmount);
+	function lockTokenForNode(uint256 _orderId, uint256 _amount) public whenNotPaused {
+		require(balances[msg.sender] >= _amount);
 	    
-	    uint256 amount = nodeSmallAmount;
-	    ////@dev for test
-		uint256 releaseTimestamp = now + 3 seconds;
+	    ////@dev for test !!!
+		uint256 releaseTimestamp = now + 5 seconds;
 
-	 	_lockToken(amount, releaseTimestamp);
+	 	_lockToken(_orderId, _amount, releaseTimestamp);
 	}
 
-	function lockTokenForNodeBig() public whenNotPaused {
-		require(balances[msg.sender] >= nodeBigAmount);
-		
-		uint256 amount = nodeBigAmount;
-		uint256 releaseTimestamp = now + 3 seconds;
-
-	 	_lockToken(amount, releaseTimestamp);   
-	}
 
 	function unlockToken() public whenNotPaused {
 		LockRecord[] memory list = ownedLockRecords[msg.sender];
@@ -73,14 +55,14 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 		}
 	}
 
-	/*
+	/**
 	* @param _index uint256 Lock record idnex.
 	* @return Return a lock record (lock amount, releaseTimestamp)
 	*/
-	function getLockByIndex(uint256 _index) public view returns(uint256, uint256) {
+	function getLockByIndex(uint256 _index) public view returns(uint256, uint256, uint256) {
         LockRecord memory record = ownedLockRecords[msg.sender][_index];
         
-        return (record.amount, record.releaseTimestamp);
+        return (record.orderId, record.amount, record.releaseTimestamp);
     }
 
     function getLockAmount() public view returns(uint256) {
@@ -93,19 +75,22 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
     	return sum;
     }
 
-	/*
+	/**
 	* @param _amount uint256 Lock amount.
 	* @param _releaseTimestamp uint256 Unlock timestamp.
 	*/
-	function _lockToken(uint256 _amount, uint256 _releaseTimestamp) internal {
+	function _lockToken(uint256 _orderId, uint256 _amount, uint256 _releaseTimestamp) internal {
 		balances[msg.sender] = balances[msg.sender].sub(_amount);
-		ownedLockRecords[msg.sender].push( LockRecord(_amount, _releaseTimestamp) );
+
+		///@dev We don't care the orderId already exist or not. 
+		/// Because the web server will detect it.
+		ownedLockRecords[msg.sender].push( LockRecord(_orderId, _amount, _releaseTimestamp) );
 		ownedLockAmount[msg.sender] = ownedLockAmount[msg.sender].add(_amount);
 
-		emit Lock(msg.sender, _amount);
+		emit Lock(msg.sender, _orderId, _amount);
 	}
 
-	/*
+	/**
 	* @dev using by internal.
 	*/
 	function _unlockTokenByIndex(uint256 _index) internal {
@@ -119,26 +104,25 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 		ownedLockAmount[msg.sender] = ownedLockAmount[msg.sender].sub(record.amount);
 		balances[msg.sender] = balances[msg.sender].add(record.amount);
 
-		emit UnLock(msg.sender, record.amount);
+		emit UnLock(msg.sender, record.orderId, record.amount);
 	}
 
 }
 
 contract BunnyBurnableToken is LockableToken {
 	
-	event Upgrade(address indexed owner, uint256 value, uint256 vip);
-	event UpgradeFor(address indexed from, address indexed to, uint256 value, uint256 vip);
+	event Pay(address indexed owner, uint256 orderId, uint256 amount, uint256 burnAmount);
 
 	address public cooAddress;
 
-	/// @dev User upgrade action will consume a certain amount of token.
-	uint256 public upgradeAmount;
+	/// @dev User pay action will consume a certain amount of token.
+	//uint256 public payAmount;
 
-	/// @dev User upgrade action will brun a certain amount of token their owned.
-	uint256 public upgradeBrunAmount;
+	/// @dev User pay action will brun a certain amount of token their owned.
+	//uint256 public payBrunAmount;
 
 
-	 /**
+	/**
 	* @dev The BunnyBurnableToken constructor sets the original `cooAddress` of the contract to the sender
 	* account.
 	*/
@@ -154,48 +138,22 @@ contract BunnyBurnableToken is LockableToken {
         cooAddress = _newCOO;
     }
 
-    function setUpgradeAmount(uint256 _upgradeAmount) external onlyOwner {
-        upgradeAmount = _upgradeAmount;
-    }
-
-    function setUpgradeBrunAmount(uint256 _upgradeBrunAmount) external onlyOwner {
-        upgradeBrunAmount = _upgradeBrunAmount;
-    }
-
-    function burnBunnyFor(address _address, uint256 _vip) external whenNotPaused {
-    	require(_vip > 0 && _vip <= 12);
+    /**
+    * @dev Pay for order
+    *
+    */ 
+    function payOrder(uint256 _orderId, uint256 _amount, uint256 _burnAmount) external whenNotPaused {
+    	require(balances[msg.sender] >= _amount);
     	
-    	uint256 upgradeAmountAll = upgradeAmount.mul(_vip);
-    	uint256 upgradeBrunAmountAll = upgradeBrunAmount.mul(_vip);
-
-    	require(balances[msg.sender] >= upgradeAmountAll);
-
-    	balances[msg.sender] = balances[msg.sender].sub(upgradeAmountAll);
-    	uint256 fee = upgradeAmountAll.sub(upgradeBrunAmountAll);
-    	balances[cooAddress] = balances[cooAddress].add(fee);
-    	
-    	burn(upgradeBrunAmountAll);
-
-    	emit Transfer(msg.sender, cooAddress, fee);
-    	emit UpgradeFor(msg.sender, _address, upgradeAmount, _vip);
-    }
-
-    function burnBunny(uint256 _vip) external whenNotPaused {
-    	require(_vip > 0 && _vip <= 12);
-    	
-    	uint256 upgradeAmountAll = upgradeAmount.mul(_vip);
-    	uint256 upgradeBrunAmountAll = upgradeBrunAmount.mul(_vip);
-
-    	require(balances[msg.sender] >= upgradeAmountAll);
-
-    	balances[msg.sender] = balances[msg.sender].sub(upgradeAmountAll);
-    	uint256 fee = upgradeAmountAll.sub(upgradeBrunAmountAll);
-    	balances[cooAddress] = balances[cooAddress].add(fee);
-    	
-    	burn(upgradeBrunAmountAll);
-
-    	emit Transfer(msg.sender, cooAddress, fee);
-    	emit Upgrade(msg.sender, upgradeAmountAll, _vip);
+    	/// @dev _burnAmount must be less then _amount, the code can be executed to the next line.
+    	uint256 fee = _amount.sub(_burnAmount);
+    	if (fee > 0) {
+    		balances[msg.sender] = balances[msg.sender].sub(fee);
+    		balances[cooAddress] = balances[cooAddress].add(fee);
+    		emit Transfer(msg.sender, cooAddress, fee);
+    	}
+    	burn(_burnAmount);
+    	emit Pay(msg.sender, _orderId, _amount, _burnAmount);
     }
 }
 
@@ -208,12 +166,7 @@ contract BunnyToken is BunnyBurnableToken {
 	uint256 public constant INITIAL_SUPPLY = 1600000000;
 
 	function BunnyToken() public {
-		totalSupply_      = INITIAL_SUPPLY * (10 ** uint256(decimals));
-		nodeSmallAmount   = 10000  * (10 ** uint256(decimals));
-	    nodeBigAmount     = 100000  * (10 ** uint256(decimals));
-	    upgradeAmount     = 126 * (10 ** uint256(decimals));
-	    upgradeBrunAmount = 100 * (10 ** uint256(decimals));
-
+		totalSupply_ = INITIAL_SUPPLY * (10 ** uint256(decimals));
 		balances[msg.sender] = totalSupply_;
 	}
 }
