@@ -145,7 +145,7 @@ contract BunnyBurnableToken is LockableToken {
     function payOrder(uint256 _orderId, uint256 _amount, uint256 _burnAmount) external whenNotPaused {
     	require(balances[msg.sender] >= _amount);
     	
-    	/// @dev _burnAmount must be less then _amount, the code can be executed to the next line.
+    	/// @dev _burnAmount must be less then _amount, the code can be executed to the next line afterwards.
     	uint256 fee = _amount.sub(_burnAmount);
     	if (fee > 0) {
     		balances[msg.sender] = balances[msg.sender].sub(fee);
