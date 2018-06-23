@@ -6,8 +6,21 @@ import "./Claimable.sol";
 import "./Pausable.sol";
 import "./SafeMath.sol";
 
+contract PausableToken is StandardToken, BurnableToken, Claimable, Pausable {
+    function transfer(address to, uint256 value) public whenNotPaused returns (bool) {
+    	return super.transfer(to, value);
+    }
 
-contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
+    function transferFrom(address from, address to, uint256 value) public whenNotPaused returns (bool) {
+    	return super.transferFrom(from, to, value);
+    }
+
+    function approve(address spender, uint256 value) public whenNotPaused returns (bool) {
+    	return super.approve(spender, value);
+    }
+}
+
+contract LockableToken is PausableToken {
 	using SafeMath for uint256;
 
 	event Lock(address indexed owner, uint256 orderId, uint256 value, uint256 releaseTimestamp);
@@ -32,14 +45,13 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 	* @dev Lock token until _timeSpan second.
 	* @param _orderId uint256
 	* @param _amount uint256
-	* @param _timeSpan uint256 Duration of lock span, unit is second.
 	*/
 	function lockTokenForNode(uint256 _orderId, uint256 _amount, uint256 _timeSpan) public whenNotPaused {
 		require(balances[msg.sender] >= _amount);
-		require(_timeSpan > 0 && _timeSpan < 3 years);
+		require(_timeSpan > 0 && _timeSpan <= 3 years);
 	    
 	    ////@dev for test !!!
-		uint256 releaseTimestamp = _timeSpan;
+		uint256 releaseTimestamp = now + _timeSpan;
 
 	 	_lockToken(_orderId, _amount, releaseTimestamp);
 	}
@@ -113,7 +125,7 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 
 }
 
-contract BunnyBurnableToken is LockableToken {
+contract TuzyPayableToken is LockableToken {
 	
 	event Pay(address indexed owner, uint256 orderId, uint256 amount, uint256 burnAmount);
 
@@ -127,10 +139,10 @@ contract BunnyBurnableToken is LockableToken {
 
 
 	/**
-	* @dev The BunnyBurnableToken constructor sets the original `cooAddress` of the contract to the sender
+	* @dev The TuzyPayableToken constructor sets the original `cooAddress` of the contract to the sender
 	* account.
 	*/
-	function BunnyBurnableToken() public {
+	function TuzyPayableToken() public {
 		cooAddress = msg.sender;
 	}
 	
@@ -161,7 +173,7 @@ contract BunnyBurnableToken is LockableToken {
     }
 }
 
-contract TuzyToken is BunnyBurnableToken {
+contract TuzyToken is TuzyPayableToken {
 	string public name    = "TuzyToken";
 	string public symbol  = "TUC";
 	uint8 public decimals = 8;
@@ -169,7 +181,7 @@ contract TuzyToken is BunnyBurnableToken {
 	// 1.6 billion in initial supply
 	uint256 public constant INITIAL_SUPPLY = 1600000000;
 
-	function BunnyToken() public {
+	function TuzyToken() public {
 		totalSupply_ = INITIAL_SUPPLY * (10 ** uint256(decimals));
 		balances[msg.sender] = totalSupply_;
 	}
