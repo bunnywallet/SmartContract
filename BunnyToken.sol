@@ -10,7 +10,7 @@ import "./SafeMath.sol";
 contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 	using SafeMath for uint256;
 
-	event Lock(address indexed owner, uint256 orderId, uint256 value);
+	event Lock(address indexed owner, uint256 orderId, uint256 value, uint256 releaseTimestamp);
 	event UnLock(address indexed owner, uint256 orderId, uint256 value);
 
 	struct LockRecord {
@@ -29,13 +29,17 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 	mapping (address => uint256) ownedLockAmount;
 
 	/**
-	* @dev Lock token until 1 year.
+	* @dev Lock token until _timeSpan second.
+	* @param _orderId uint256
+	* @param _amount uint256
+	* @param _timeSpan uint256 Duration of lock span, unit is second.
 	*/
-	function lockTokenForNode(uint256 _orderId, uint256 _amount) public whenNotPaused {
+	function lockTokenForNode(uint256 _orderId, uint256 _amount, uint256 _timeSpan) public whenNotPaused {
 		require(balances[msg.sender] >= _amount);
+		require(_timeSpan > 0 && _timeSpan < 3 years);
 	    
 	    ////@dev for test !!!
-		uint256 releaseTimestamp = now + 5 seconds;
+		uint256 releaseTimestamp = _timeSpan;
 
 	 	_lockToken(_orderId, _amount, releaseTimestamp);
 	}
@@ -87,7 +91,7 @@ contract LockableToken is StandardToken, BurnableToken, Claimable, Pausable {
 		ownedLockRecords[msg.sender].push( LockRecord(_orderId, _amount, _releaseTimestamp) );
 		ownedLockAmount[msg.sender] = ownedLockAmount[msg.sender].add(_amount);
 
-		emit Lock(msg.sender, _orderId, _amount);
+		emit Lock(msg.sender, _orderId, _amount, _releaseTimestamp);
 	}
 
 	/**
@@ -145,7 +149,7 @@ contract BunnyBurnableToken is LockableToken {
     function payOrder(uint256 _orderId, uint256 _amount, uint256 _burnAmount) external whenNotPaused {
     	require(balances[msg.sender] >= _amount);
     	
-    	/// @dev _burnAmount must be less then _amount, the code can be executed to the next line afterwards.
+    	/// @dev _burnAmount must be less then _amount, the code can be executed to the next line.
     	uint256 fee = _amount.sub(_burnAmount);
     	if (fee > 0) {
     		balances[msg.sender] = balances[msg.sender].sub(fee);
@@ -157,9 +161,9 @@ contract BunnyBurnableToken is LockableToken {
     }
 }
 
-contract BunnyToken is BunnyBurnableToken {
-	string public name    = "AAA";
-	string public symbol  = "AA";
+contract TuzyToken is BunnyBurnableToken {
+	string public name    = "TuzyToken";
+	string public symbol  = "TUC";
 	uint8 public decimals = 8;
 
 	// 1.6 billion in initial supply
