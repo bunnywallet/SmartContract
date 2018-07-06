@@ -23,8 +23,8 @@ contract PausableToken is StandardToken, BurnableToken, Claimable, Pausable {
 contract LockableToken is PausableToken {
 	using SafeMath for uint256;
 
-	event Lock(address indexed owner, uint256 orderId, uint256 value, uint256 releaseTimestamp);
-	event UnLock(address indexed owner, uint256 orderId, uint256 value);
+	event Lock(address indexed owner, uint256 orderId, uint256 amount, uint256 releaseTimestamp);
+	event UnLock(address indexed owner, uint256 orderId, uint256 amount);
 
 	struct LockRecord {
 	    
