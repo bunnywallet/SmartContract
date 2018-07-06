@@ -50,7 +50,6 @@ contract LockableToken is PausableToken {
 		require(balances[msg.sender] >= _amount);
 		require(_timeSpan > 0 && _timeSpan <= 3 years);
 	    
-	    ////@dev for test !!!
 		uint256 releaseTimestamp = now + _timeSpan;
 
 	 	_lockToken(_orderId, _amount, releaseTimestamp);
@@ -164,9 +163,7 @@ contract TuzyPayableToken is LockableToken {
     	/// @dev _burnAmount must be less then _amount, the code can be executed to the next line.
     	uint256 fee = _amount.sub(_burnAmount);
     	if (fee > 0) {
-    		balances[msg.sender] = balances[msg.sender].sub(fee);
-    		balances[cooAddress] = balances[cooAddress].add(fee);
-    		emit Transfer(msg.sender, cooAddress, fee);
+    		transfer(cooAddress, fee);
     	}
     	burn(_burnAmount);
     	emit Pay(msg.sender, _orderId, _amount, _burnAmount);
