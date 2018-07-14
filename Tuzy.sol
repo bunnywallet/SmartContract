@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity 0.4.23;
 
 /**
  * @title SafeMath
@@ -29,7 +29,7 @@ library SafeMath {
   }
 
   /**
-  * @dev Substracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
+  * @dev Subtracts two numbers, throws on overflow (i.e. if subtrahend is greater than minuend).
   */
   function sub(uint256 a, uint256 b) internal pure returns (uint256) {
     assert(b <= a);
@@ -41,74 +41,6 @@ library SafeMath {
   */
   function add(uint256 a, uint256 b) internal pure returns (uint256) {
     uint256 c = a + b;
-    assert(c >= a);
-    return c;
-  }
-}
-
-/**
- * @title SafeMath32
- * @dev SafeMath library implemented for uint32
- */
-library SafeMath32 {
-
-  function mul(uint32 a, uint32 b) internal pure returns (uint32) {
-    if (a == 0) {
-      return 0;
-    }
-    uint32 c = a * b;
-    assert(c / a == b);
-    return c;
-  }
-
-  function div(uint32 a, uint32 b) internal pure returns (uint32) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    uint32 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return c;
-  }
-
-  function sub(uint32 a, uint32 b) internal pure returns (uint32) {
-    assert(b <= a);
-    return a - b;
-  }
-
-  function add(uint32 a, uint32 b) internal pure returns (uint32) {
-    uint32 c = a + b;
-    assert(c >= a);
-    return c;
-  }
-}
-
-/**
- * @title SafeMath16
- * @dev SafeMath library implemented for uint16
- */
-library SafeMath16 {
-
-  function mul(uint16 a, uint16 b) internal pure returns (uint16) {
-    if (a == 0) {
-      return 0;
-    }
-    uint16 c = a * b;
-    assert(c / a == b);
-    return c;
-  }
-
-  function div(uint16 a, uint16 b) internal pure returns (uint16) {
-    // assert(b > 0); // Solidity automatically throws when dividing by 0
-    uint16 c = a / b;
-    // assert(a == b * c + a % b); // There is no case in which this doesn't hold
-    return c;
-  }
-
-  function sub(uint16 a, uint16 b) internal pure returns (uint16) {
-    assert(b <= a);
-    return a - b;
-  }
-
-  function add(uint16 a, uint16 b) internal pure returns (uint16) {
-    uint16 c = a + b;
     assert(c >= a);
     return c;
   }
@@ -327,7 +259,7 @@ contract Ownable {
    * @dev The Ownable constructor sets the original `owner` of the contract to the sender
    * account.
    */
-  function Ownable() public {
+  constructor() public {
     owner = msg.sender;
   }
 
@@ -434,16 +366,24 @@ contract Pausable is Ownable {
 
 
 contract PausableToken is StandardToken, BurnableToken, Claimable, Pausable {
-    function transfer(address to, uint256 value) public whenNotPaused returns (bool) {
-    	return super.transfer(to, value);
+    function transfer(address _to, uint256 _value) public whenNotPaused returns (bool) {
+    	return super.transfer(_to, _value);
     }
 
-    function transferFrom(address from, address to, uint256 value) public whenNotPaused returns (bool) {
-    	return super.transferFrom(from, to, value);
+    function transferFrom(address _from, address _to, uint256 _value) public whenNotPaused returns (bool) {
+    	return super.transferFrom(_from, _to, _value);
     }
 
-    function approve(address spender, uint256 value) public whenNotPaused returns (bool) {
-    	return super.approve(spender, value);
+    function approve(address _spender, uint256 _value) public whenNotPaused returns (bool) {
+    	return super.approve(_spender, _value);
+    }
+
+    function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
+      return super.increaseApproval(_spender, _addedValue);
+    }
+
+    function decreaseApproval(address _spender, uint _subtractedValue) public returns (bool) {
+      return super.decreaseApproval(_spender, _subtractedValue);
     }
 }
 
@@ -485,6 +425,7 @@ contract LockableToken is PausableToken {
 
 	function unlockToken() public whenNotPaused {
 		LockRecord[] memory list = ownedLockRecords[msg.sender];
+    require(list.length > 0);
 		for(uint i = list.length - 1; i >= 0; i--) {
 			// If a record can be release.
 			if (now >= list[i].releaseTimestamp) {
@@ -522,7 +463,9 @@ contract LockableToken is PausableToken {
 	* @param _releaseTimestamp uint256 Unlock timestamp.
 	*/
 	function _lockToken(uint256 _orderId, uint256 _amount, uint256 _releaseTimestamp) internal {
-		balances[msg.sender] = balances[msg.sender].sub(_amount);
+		require(ownedLockRecords[msg.sender].length <= 500);
+    
+    balances[msg.sender] = balances[msg.sender].sub(_amount);
 
 		///@dev We don't care the orderId already exist or not. 
 		/// Because the web server will detect it.
@@ -568,7 +511,7 @@ contract TuzyPayableToken is LockableToken {
 	* @dev The TuzyPayableToken constructor sets the original `cooAddress` of the contract to the sender
 	* account.
 	*/
-	function TuzyPayableToken() public {
+	constructor() public {
 		cooAddress = msg.sender;
 	}
 	
@@ -605,8 +548,13 @@ contract TuzyToken is TuzyPayableToken {
 	// 1.6 billion in initial supply
 	uint256 public constant INITIAL_SUPPLY = 1600000000;
 
-	function TuzyToken() public {
+	constructor() public {
 		totalSupply_ = INITIAL_SUPPLY * (10 ** uint256(decimals));
 		balances[msg.sender] = totalSupply_;
 	}
+
+  function globalBurnAmount() public view returns(uint256) {
+    return INITIAL_SUPPLY * (10 ** uint256(decimals)) - totalSupply_;
+  }
+
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.21;
+pragma solidity ^0.4.23;
 
 import "./BurnableToken.sol";
 import "./StandardToken.sol";
@@ -58,6 +58,7 @@ contract LockableToken is PausableToken {
 
 	function unlockToken() public whenNotPaused {
 		LockRecord[] memory list = ownedLockRecords[msg.sender];
+		require(list.length > 0);
 		for(uint i = list.length - 1; i >= 0; i--) {
 			// If a record can be release.
 			if (now >= list[i].releaseTimestamp) {
@@ -95,6 +96,8 @@ contract LockableToken is PausableToken {
 	* @param _releaseTimestamp uint256 Unlock timestamp.
 	*/
 	function _lockToken(uint256 _orderId, uint256 _amount, uint256 _releaseTimestamp) internal {
+		require(ownedLockRecords[msg.sender].length <= 500);
+		
 		balances[msg.sender] = balances[msg.sender].sub(_amount);
 
 		///@dev We don't care the orderId already exist or not. 
