@@ -18,6 +18,14 @@ contract PausableToken is StandardToken, BurnableToken, Claimable, Pausable {
     function approve(address spender, uint256 value) public whenNotPaused returns (bool) {
     	return super.approve(spender, value);
     }
+
+	function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
+		return super.increaseApproval(_spender, _addedValue);
+	}
+
+	function decreaseApproval(address _spender, uint _subtractedValue) public returns (bool) {
+		return super.decreaseApproval(_spender, _subtractedValue);
+	}
 }
 
 contract LockableToken is PausableToken {
@@ -48,7 +56,7 @@ contract LockableToken is PausableToken {
 	*/
 	function lockTokenForNode(uint256 _orderId, uint256 _amount, uint256 _timeSpan) public whenNotPaused {
 		require(balances[msg.sender] >= _amount);
-		require(_timeSpan > 0 && _timeSpan <= 3 years);
+		require(_timeSpan > 0 && _timeSpan <= 3 * 365 days);
 	    
 		uint256 releaseTimestamp = now + _timeSpan;
 
@@ -92,11 +100,18 @@ contract LockableToken is PausableToken {
     }
 
 	/**
+	* @dev Get lock records count
+	*/
+	function getLockRecordCount() view public returns(uint256) {
+		return ownedLockRecords[msg.sender].length;
+	}
+
+	/**
 	* @param _amount uint256 Lock amount.
 	* @param _releaseTimestamp uint256 Unlock timestamp.
 	*/
 	function _lockToken(uint256 _orderId, uint256 _amount, uint256 _releaseTimestamp) internal {
-		require(ownedLockRecords[msg.sender].length <= 500);
+		require(ownedLockRecords[msg.sender].length <= 20);
 		
 		balances[msg.sender] = balances[msg.sender].sub(_amount);
 

@@ -408,6 +408,7 @@ contract LockableToken is PausableToken {
 	mapping (address => LockRecord[]) ownedLockRecords;
 	mapping (address => uint256) ownedLockAmount;
 
+
 	/**
 	* @dev Lock token until _timeSpan second.
 	* @param _orderId uint256
@@ -415,7 +416,7 @@ contract LockableToken is PausableToken {
 	*/
 	function lockTokenForNode(uint256 _orderId, uint256 _amount, uint256 _timeSpan) public whenNotPaused {
 		require(balances[msg.sender] >= _amount);
-		require(_timeSpan > 0 && _timeSpan <= 3 years);
+		require(_timeSpan > 0 && _timeSpan <= 3 * 365 days);
 	    
 		uint256 releaseTimestamp = now + _timeSpan;
 
@@ -448,22 +449,29 @@ contract LockableToken is PausableToken {
         return (record.orderId, record.amount, record.releaseTimestamp);
     }
 
-    function getLockAmount() public view returns(uint256) {
-    	LockRecord[] memory list = ownedLockRecords[msg.sender];
-    	uint sum = 0;
-    	for (uint i = 0; i < list.length; i++) {
-    		sum += list[i].amount;
-    	}
+  function getLockAmount() public view returns(uint256) {
+  	LockRecord[] memory list = ownedLockRecords[msg.sender];
+  	uint sum = 0;
+  	for (uint i = 0; i < list.length; i++) {
+  		sum += list[i].amount;
+  	}
 
-    	return sum;
-    }
+  	return sum;
+  }
+
+  /**
+  * @dev Get lock records count
+  */
+  function getLockRecordCount() view public returns(uint256) {
+    return ownedLockRecords[msg.sender].length;
+  }
 
 	/**
 	* @param _amount uint256 Lock amount.
 	* @param _releaseTimestamp uint256 Unlock timestamp.
 	*/
 	function _lockToken(uint256 _orderId, uint256 _amount, uint256 _releaseTimestamp) internal {
-		require(ownedLockRecords[msg.sender].length <= 500);
+		require(ownedLockRecords[msg.sender].length <= 20);
     
     balances[msg.sender] = balances[msg.sender].sub(_amount);
 
@@ -515,29 +523,29 @@ contract TuzyPayableToken is LockableToken {
 		cooAddress = msg.sender;
 	}
 	
-	/// @dev Assigns a new address to act as the COO.
-    /// @param _newCOO The address of the new COO.
-    function setCOO(address _newCOO) external onlyOwner {
-        require(_newCOO != address(0));
-        
-        cooAddress = _newCOO;
-    }
+/// @dev Assigns a new address to act as the COO.
+  /// @param _newCOO The address of the new COO.
+  function setCOO(address _newCOO) external onlyOwner {
+      require(_newCOO != address(0));
+      
+      cooAddress = _newCOO;
+  }
 
-    /**
-    * @dev Pay for order
-    *
-    */ 
-    function payOrder(uint256 _orderId, uint256 _amount, uint256 _burnAmount) external whenNotPaused {
-    	require(balances[msg.sender] >= _amount);
-    	
-    	/// @dev _burnAmount must be less then _amount, the code can be executed to the next line.
-    	uint256 fee = _amount.sub(_burnAmount);
-    	if (fee > 0) {
-    		transfer(cooAddress, fee);
-    	}
-    	burn(_burnAmount);
-    	emit Pay(msg.sender, _orderId, _amount, _burnAmount);
-    }
+  /**
+  * @dev Pay for order
+  *
+  */ 
+  function payOrder(uint256 _orderId, uint256 _amount, uint256 _burnAmount) external whenNotPaused {
+  	require(balances[msg.sender] >= _amount);
+  	
+  	/// @dev _burnAmount must be less then _amount, the code can be executed to the next line.
+  	uint256 fee = _amount.sub(_burnAmount);
+  	if (fee > 0) {
+  		transfer(cooAddress, fee);
+  	}
+  	burn(_burnAmount);
+  	emit Pay(msg.sender, _orderId, _amount, _burnAmount);
+  }
 }
 
 contract TuzyToken is TuzyPayableToken {
