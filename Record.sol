@@ -3,3 +3,4 @@ address2: 0x2ab33e3ab50657e0851f8a049412ce57edcf2f6a
 address3: 0xb125c9853d23f9c193d7a7e56de35798ac42f8c1
 
 ERC20 Contract:
+0x02e86a411e0e7c74df12ded7ad707f2df6c3c8ba
