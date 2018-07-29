@@ -159,7 +159,7 @@ contract TuzyPayableToken is LockableToken {
 	* @dev The TuzyPayableToken constructor sets the original `cooAddress` of the contract to the sender
 	* account.
 	*/
-	function TuzyPayableToken() public {
+	constructor() public {
 		cooAddress = msg.sender;
 	}
 	
@@ -188,15 +188,15 @@ contract TuzyPayableToken is LockableToken {
     }
 }
 
-contract TuzyToken is TuzyPayableToken {
-	string public name    = "TuzyToken";
+contract TuzyCoin is TuzyPayableToken {
+	string public name    = "Tuzy Coin";
 	string public symbol  = "TUC";
 	uint8 public decimals = 8;
 
 	// 1.6 billion in initial supply
 	uint256 public constant INITIAL_SUPPLY = 1600000000;
 
-	function TuzyToken() public {
+	constructor() public {
 		totalSupply_ = INITIAL_SUPPLY * (10 ** uint256(decimals));
 		balances[msg.sender] = totalSupply_;
 	}

@@ -548,8 +548,8 @@ contract TuzyPayableToken is LockableToken {
   }
 }
 
-contract TuzyToken is TuzyPayableToken {
-	string public name    = "TuzyToken";
+contract TuzyCoin is TuzyPayableToken {
+	string public name    = "Tuzy Coin";
 	string public symbol  = "TUC";
 	uint8 public decimals = 8;
 
